@@ -1,0 +1,2 @@
+imu_listener_pkg
+-DCATKIN_DEVEL_PREFIX=/home/souvik03/Downloads/ros_projects/devel -DCMAKE_INSTALL_PREFIX=/home/souvik03/Downloads/ros_projects/install -G Unix Makefiles
