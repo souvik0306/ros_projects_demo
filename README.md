@@ -69,3 +69,34 @@ From your earlier `rosbag info`, these are the IMU-related topics available:
 | `roscore`        | Starts the master and enables communication | WhatsApp server (lets devices chat)    |
 | `rostopic echo`  | See what's being published to a topic       | Listening to a live radio channel      |
 | Folder structure | Organizes code for ROS to compile and run   | Clean kitchen layout                    |
+
+## Sample IMU message format from V1_02_medium.bag 
+```
+header:
+  stamp:
+    secs: 1403715533
+    nsecs: 142143000
+  frame_id: "imu4"
+
+orientation:
+  x: 0.0
+  y: 0.0
+  z: 0.0
+  w: 1.0
+
+orientation_covariance: [99999.9, 0, 0, 0, 99999.9, 0, 0, 0, 99999.9]
+
+angular_velocity:
+  x: -0.49
+  y: 0.26
+  z: 0.12
+
+angular_velocity_covariance: [0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+linear_acceleration:
+  x: 9.9
+  y: 0.98
+  z: -3.3
+
+linear_acceleration_covariance: [0, 0, 0, 0, 0, 0, 0, 0, 0]
+```
