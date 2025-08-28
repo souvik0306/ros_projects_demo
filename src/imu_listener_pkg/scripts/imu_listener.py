@@ -10,6 +10,7 @@ from sensor_msgs.msg import Imu
 # --- configuration ---
 SEQLEN   = 200
 INTERVAL = 9
+OVERLAP  = INTERVAL + 1  # number of samples kept between windows
 
 # resolve absolute paths using rospkg
 rp = rospkg.RosPack()
@@ -28,12 +29,14 @@ results = []
 def run_inference():
     global results
 
+    # convert buffers to numpy arrays
     time = np.array(time_buf, dtype=np.float64)
     acc  = np.array(acc_buf, dtype=np.float32)
     gyro = np.array(gyro_buf, dtype=np.float32)
 
+    # compute dt and drop the last sample to match its length
     dt = np.diff(time)[..., None]
-    acc  = acc[:-1]
+    acc = acc[:-1]
     gyro = gyro[:-1]
 
     acc_b  = acc[None, ...]
@@ -41,9 +44,11 @@ def run_inference():
 
     corr_acc, corr_gyro = onnx_model.run(None, {"acc": acc_b, "gyro": gyro_b})
 
-    corrected_acc  = acc_b[:, INTERVAL:, :]  + corr_acc
-    corrected_gyro = gyro_b[:, INTERVAL:, :] + corr_gyro
-    dt_trim        = dt[INTERVAL:, :]
+    # skip the already-corrected prefix of length OVERLAP-1
+    start = OVERLAP - 1
+    corrected_acc  = acc_b[:, start:, :]  + corr_acc
+    corrected_gyro = gyro_b[:, start:, :] + corr_gyro
+    dt_trim        = dt[start:, :]
 
     rospy.loginfo(f"Corrected accel: {corrected_acc[0, -1]}")
     rospy.loginfo(f"Corrected gyro:  {corrected_gyro[0, -1]}")
@@ -77,9 +82,11 @@ def imu_callback(msg: Imu):
 
     if len(time_buf) >= SEQLEN:
         run_inference()
-        time_buf[:] = time_buf[-INTERVAL:]
-        acc_buf[:]  = acc_buf[-INTERVAL:]
-        gyro_buf[:] = gyro_buf[-INTERVAL:]
+        # keep the last OVERLAP samples so the final reading from this window
+        # is corrected in the next one
+        time_buf[:] = time_buf[-OVERLAP:]
+        acc_buf[:]  = acc_buf[-OVERLAP:]
+        gyro_buf[:] = gyro_buf[-OVERLAP:]
 
 def listener():
     rospy.init_node("imu_inference_node")
