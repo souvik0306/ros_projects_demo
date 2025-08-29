@@ -17,7 +17,7 @@ rp = rospkg.RosPack()
 pkg_path = rp.get_path("imu_listener_pkg")
 
 ONNX_PATH   = os.path.join(pkg_path, "models", "airimu_euroc.onnx")
-PICKLE_PATH = os.path.join(pkg_path, "results", "timeit_mh2_net_output.pickle")
+PICKLE_PATH = os.path.join(pkg_path, "results", "timeit_v12_net_output.pickle")
 
 # buffers
 MAX_BUF_SIZE = SEQLEN * 2
