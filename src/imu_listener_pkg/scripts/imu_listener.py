@@ -6,6 +6,7 @@ import pickle
 import os
 import rospkg
 from sensor_msgs.msg import Imu
+import sys
 
 # --- configuration ---
 SEQLEN   = 200
@@ -107,6 +108,7 @@ def listener():
     rospy.loginfo(f"[READY] Model loaded at ROS time: {rospy.Time.now().to_sec():.2f}")
 
     rospy.Subscriber("/imu0", Imu, imu_callback, queue_size=1000)
+    rospy.loginfo(f"[INFO] Python version: {sys.version}")
     rospy.spin()
 
 if __name__ == "__main__":
