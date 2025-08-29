@@ -137,6 +137,7 @@ class IMUInferenceNode:
 
         self.load_model()
         rospy.Subscriber("/imu0", Imu, self.imu_callback, queue_size=1000)
+        # rospy.Subscriber("mavros/imu/data", Imu, self.imu_callback, queue_size=1000)
         rospy.spin()
 
 if __name__ == "__main__":
