@@ -17,18 +17,24 @@ rp = rospkg.RosPack()
 pkg_path = rp.get_path("imu_listener_pkg")  # ← your package name
 
 ONNX_PATH   = os.path.join(pkg_path, "models", "airimu_euroc.onnx")
-PICKLE_PATH = os.path.join(pkg_path, "results", "net_output.pickle")
+PICKLE_PATH = os.path.join(pkg_path, "results", "timeit_0_net_output.pickle")
 
 # Load ONNX model
-onnx_model = ort.InferenceSession(ONNX_PATH, providers=["CPUExecutionProvider"])
+session_options = ort.SessionOptions()
+session_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+session_options.intra_op_num_threads = os.cpu_count()
+session_options.execution_mode = ort.ExecutionMode.ORT_PARALLEL
+
+onnx_model = ort.InferenceSession(
+    ONNX_PATH, sess_options=session_options, providers=["CPUExecutionProvider"]
+)
+# onnx_model = ort.InferenceSession(ONNX_PATH, providers=["CPUExecutionProvider"])
 
 # buffers
 time_buf, acc_buf, gyro_buf = [], [], []
 results = []
 
 def run_inference():
-    global results
-
     # convert buffers to numpy arrays
     time = np.array(time_buf, dtype=np.float64)
     acc  = np.array(acc_buf, dtype=np.float32)
@@ -67,7 +73,7 @@ def run_inference():
     with open(PICKLE_PATH, "wb") as f:
         pickle.dump(results, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-def imu_callback(msg: Imu):
+def imu_callback(msg: Imu):        
     t = msg.header.stamp.to_sec()
     acc = (msg.linear_acceleration.x,
            msg.linear_acceleration.y,
@@ -79,7 +85,6 @@ def imu_callback(msg: Imu):
     time_buf.append(t)
     acc_buf.append(acc)
     gyro_buf.append(gyro)
-
     if len(time_buf) >= SEQLEN:
         run_inference()
         # keep the last OVERLAP samples so the final reading from this window
