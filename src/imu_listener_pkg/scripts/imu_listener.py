@@ -17,7 +17,7 @@ rp = rospkg.RosPack()
 pkg_path = rp.get_path("imu_listener_pkg")  # ← your package name
 
 ONNX_PATH   = os.path.join(pkg_path, "models", "airimu_euroc.onnx")
-PICKLE_PATH = os.path.join(pkg_path, "results", "timeit_0_net_output.pickle")
+PICKLE_PATH = os.path.join(pkg_path, "results", "timeit_mh_net_output.pickle")
 
 # Load ONNX model
 session_options = ort.SessionOptions()
@@ -31,14 +31,18 @@ onnx_model = ort.InferenceSession(
 # onnx_model = ort.InferenceSession(ONNX_PATH, providers=["CPUExecutionProvider"])
 
 # buffers
-time_buf, acc_buf, gyro_buf = [], [], []
+MAX_BUF_SIZE = SEQLEN * 2  # or any safe upper bound
+time_buf = np.zeros(MAX_BUF_SIZE, dtype=np.float32)
+acc_buf = np.zeros((MAX_BUF_SIZE, 3), dtype=np.float32)
+gyro_buf = np.zeros((MAX_BUF_SIZE, 3), dtype=np.float32)
+buf_idx = 0
 results = []
 
 def run_inference():
-    # convert buffers to numpy arrays
-    time = np.array(time_buf, dtype=np.float64)
-    acc  = np.array(acc_buf, dtype=np.float32)
-    gyro = np.array(gyro_buf, dtype=np.float32)
+    # Use slices instead of .copy() to avoid extra memory usage
+    time = time_buf[:buf_idx]
+    acc  = acc_buf[:buf_idx]
+    gyro = gyro_buf[:buf_idx]
 
     # compute dt and drop the last sample to match its length
     dt = np.diff(time)[..., None]
@@ -73,25 +77,20 @@ def run_inference():
     with open(PICKLE_PATH, "wb") as f:
         pickle.dump(results, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-def imu_callback(msg: Imu):        
-    t = msg.header.stamp.to_sec()
-    acc = (msg.linear_acceleration.x,
-           msg.linear_acceleration.y,
-           msg.linear_acceleration.z)
-    gyro = (msg.angular_velocity.x,
-            msg.angular_velocity.y,
-            msg.angular_velocity.z)
+def imu_callback(msg: Imu):
+    global buf_idx
+    time_buf[buf_idx] = msg.header.stamp.to_sec()
+    acc_buf[buf_idx] = [msg.linear_acceleration.x, msg.linear_acceleration.y, msg.linear_acceleration.z]
+    gyro_buf[buf_idx] = [msg.angular_velocity.x, msg.angular_velocity.y, msg.angular_velocity.z]
+    buf_idx += 1
 
-    time_buf.append(t)
-    acc_buf.append(acc)
-    gyro_buf.append(gyro)
-    if len(time_buf) >= SEQLEN:
+    if buf_idx >= SEQLEN:
         run_inference()
-        # keep the last OVERLAP samples so the final reading from this window
-        # is corrected in the next one
-        time_buf[:] = time_buf[-OVERLAP:]
-        acc_buf[:]  = acc_buf[-OVERLAP:]
-        gyro_buf[:] = gyro_buf[-OVERLAP:]
+        # Keep last OVERLAP samples
+        time_buf[:OVERLAP] = time_buf[buf_idx-OVERLAP:buf_idx]
+        acc_buf[:OVERLAP] = acc_buf[buf_idx-OVERLAP:buf_idx]
+        gyro_buf[:OVERLAP] = gyro_buf[buf_idx-OVERLAP:buf_idx]
+        buf_idx = OVERLAP
 
 def listener():
     rospy.init_node("imu_inference_node")
