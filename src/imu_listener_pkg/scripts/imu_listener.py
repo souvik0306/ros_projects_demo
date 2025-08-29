@@ -17,7 +17,7 @@ rp = rospkg.RosPack()
 pkg_path = rp.get_path("imu_listener_pkg")
 
 ONNX_PATH   = os.path.join(pkg_path, "models", "airimu_euroc.onnx")
-PICKLE_PATH = os.path.join(pkg_path, "results", "timeit_v12_net_output.pickle")
+PICKLE_PATH = os.path.join(pkg_path, "results", "timeit_mh5_net_output.pickle")
 
 # buffers
 MAX_BUF_SIZE = SEQLEN * 2
@@ -30,8 +30,10 @@ results = []
 # this will be initialized after rospy.init_node()
 onnx_model = None
 
+correction_counter = 0  # Add this global variable
+
 def run_inference():
-    global results
+    global results, correction_counter
 
     time = time_buf[:buf_idx]
     acc  = acc_buf[:buf_idx]
@@ -51,6 +53,8 @@ def run_inference():
     corrected_gyro = gyro_b[:, start:, :] + corr_gyro
     dt_trim        = dt[start:, :]
 
+    correction_counter += 1  # Increment counter
+    rospy.loginfo(f"[Correction #{correction_counter}]")
     rospy.loginfo(f"Corrected accel: {corrected_acc[0, -1]}")
     rospy.loginfo(f"Corrected gyro:  {corrected_gyro[0, -1]}")
     rospy.loginfo("-----------------------")
