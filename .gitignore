@@ -2,4 +2,4 @@ bags/*
 logs/*
 build/*
 devel/*
-bin
+bin/*

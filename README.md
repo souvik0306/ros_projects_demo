@@ -67,6 +67,22 @@ This will display the messages published by your `CorrectedIMUPublisher` class.
 
 ---
 
+## Terminal 6: Launch everything with ROS launch
+
+You can use a launch file to start both the bag playback and your IMU inference node automatically:
+
+```bash
+# Terminal 6
+cd ~/ros_projects
+catkin_make
+source devel/setup.bash
+roslaunch imu_listener_pkg inference.launch
+```
+
+This will play your bag file and start your custom IMU node as defined
+
+---
+
 ## Recap of Topics in Your Bag
 
 From your earlier `rosbag info`, these are the IMU-related topics available:
@@ -80,9 +96,9 @@ From your earlier `rosbag info`, these are the IMU-related topics available:
 
 | Item             | What it does                                | Real-world analogy                     |
 | ---------------- | ------------------------------------------- | -------------------------------------- |
-| `roscore`        | Starts the master and enables communication | WhatsApp server (lets devices chat)    |
-| `rostopic echo`  | See what's being published to a topic       | Listening to a live radio channel      |
-| Folder structure | Organizes code for ROS to compile and run   | Clean kitchen layout                    |
+| `roscore`        | Starts the master and enables communication | Like a server (lets devices chat)    |
+| `rostopic echo`  | See what's being published to a topic       | Listening to active ros topics      |
+| Folder structure | Organizes code for ROS to compile and run   | Clean layout                    |
 
 ## Sample IMU message format from V1_02_medium.bag 
 ```
