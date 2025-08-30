@@ -53,6 +53,20 @@ rosrun imu_listener_pkg imu_listener.py
 
 ---
 
+## Terminal 5: Echo the corrected IMU topic
+
+After running your node, you can view the corrected IMU messages:
+
+```bash
+# Terminal 5
+source ~/Downloads/ros_projects/devel/setup.bash
+rostopic echo /corrected_imu
+```
+
+This will display the messages published by your `CorrectedIMUPublisher` class.
+
+---
+
 ## Recap of Topics in Your Bag
 
 From your earlier `rosbag info`, these are the IMU-related topics available:

@@ -10,7 +10,7 @@ from std_msgs.msg import Header
 import sys
 
 # --- configuration ---
-SEQLEN   = 10
+SEQLEN   = 200
 INTERVAL = 9
 OVERLAP  = INTERVAL + 1  # number of samples kept between windows
 
@@ -56,7 +56,7 @@ class CorrectedIMUPublisher:
     def publish(self, corrected_acc, corrected_gyro):
         imu_msg = Imu()
 
-        # ✅ THIS MUST BE HERE — not from outside
+        # timestamp
         imu_msg.header.stamp = rospy.Time.now()
         imu_msg.header.frame_id = "imu_link"
 
@@ -166,7 +166,7 @@ class IMUInferenceNode:
             return
 
         self.load_model()
-        rospy.Subscriber("/drone/imu", Imu, self.imu_callback, queue_size=1000)
+        rospy.Subscriber("/imu0", Imu, self.imu_callback, queue_size=1000)
         # rospy.Subscriber("/snappy_imu", Imu, self.imu_callback, queue_size=1000)
         # rospy.Subscriber("mavros/imu/data", Imu, self.imu_callback, queue_size=1000)
         rospy.spin()
