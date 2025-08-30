@@ -9,7 +9,7 @@ from sensor_msgs.msg import Imu
 import sys
 
 # --- configuration ---
-SEQLEN   = 200
+SEQLEN   = 500
 INTERVAL = 9
 OVERLAP  = INTERVAL + 1  # number of samples kept between windows
 
@@ -53,7 +53,7 @@ class IMUInferenceNode:
         rp = rospkg.RosPack()
         self.pkg_path = rp.get_path("imu_listener_pkg")
         self.onnx_path   = os.path.join(self.pkg_path, "models", "airimu_euroc.onnx")
-        self.pickle_path = os.path.join(self.pkg_path, "results", "timeit_mh5_net_output.pickle")
+        self.pickle_path = os.path.join(self.pkg_path, "results", "timeit_indoor_net_output.pickle")
         self.buffer = IMUBuffer(SEQLEN, OVERLAP)
         self.results = []
         self.correction_counter = 0
@@ -137,6 +137,7 @@ class IMUInferenceNode:
 
         self.load_model()
         rospy.Subscriber("/imu0", Imu, self.imu_callback, queue_size=1000)
+        # rospy.Subscriber("/snappy_imu", Imu, self.imu_callback, queue_size=1000)
         # rospy.Subscriber("mavros/imu/data", Imu, self.imu_callback, queue_size=1000)
         rospy.spin()
 
