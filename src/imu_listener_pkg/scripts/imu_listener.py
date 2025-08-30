@@ -6,10 +6,11 @@ import pickle
 import os
 import rospkg
 from sensor_msgs.msg import Imu
+from std_msgs.msg import Header
 import sys
 
 # --- configuration ---
-SEQLEN   = 500
+SEQLEN   = 10
 INTERVAL = 9
 OVERLAP  = INTERVAL + 1  # number of samples kept between windows
 
@@ -48,6 +49,29 @@ class IMUBuffer:
         self.gyro_buf[:self.overlap] = self.gyro_buf[self.buf_idx - self.overlap : self.buf_idx]
         self.buf_idx = self.overlap
 
+class CorrectedIMUPublisher:
+    def __init__(self, topic_name="/corrected_imu"):
+        self.pub = rospy.Publisher(topic_name, Imu, queue_size=100)
+
+    def publish(self, corrected_acc, corrected_gyro):
+        imu_msg = Imu()
+
+        # ✅ THIS MUST BE HERE — not from outside
+        imu_msg.header.stamp = rospy.Time.now()
+        imu_msg.header.frame_id = "imu_link"
+
+        # Corrected acceleration
+        imu_msg.linear_acceleration.x = float(corrected_acc[0])
+        imu_msg.linear_acceleration.y = float(corrected_acc[1])
+        imu_msg.linear_acceleration.z = float(corrected_acc[2])
+
+        # Corrected gyroscope
+        imu_msg.angular_velocity.x = float(corrected_gyro[0])
+        imu_msg.angular_velocity.y = float(corrected_gyro[1])
+        imu_msg.angular_velocity.z = float(corrected_gyro[2])
+
+        self.pub.publish(imu_msg)
+
 class IMUInferenceNode:
     def __init__(self):
         rp = rospkg.RosPack()
@@ -58,6 +82,7 @@ class IMUInferenceNode:
         self.results = []
         self.correction_counter = 0
         self.onnx_model = None
+        self.corrected_imu_pub = CorrectedIMUPublisher("/corrected_imu")
 
     def check_files(self):
         if not os.path.isfile(self.onnx_path):
@@ -108,6 +133,11 @@ class IMUInferenceNode:
             rospy.loginfo(f"Corrected gyro:  {corrected_gyro[0, -1]}")
             rospy.loginfo("-----------------------")
 
+            # Publish the last corrected IMU message
+            self.corrected_imu_pub.publish(
+               corrected_acc[0, -1], corrected_gyro[0, -1]
+            )
+
             self.results.append({
                 "correction_acc":  corr_acc[0],
                 "correction_gyro": corr_gyro[0],
@@ -136,7 +166,7 @@ class IMUInferenceNode:
             return
 
         self.load_model()
-        rospy.Subscriber("/imu0", Imu, self.imu_callback, queue_size=1000)
+        rospy.Subscriber("/drone/imu", Imu, self.imu_callback, queue_size=1000)
         # rospy.Subscriber("/snappy_imu", Imu, self.imu_callback, queue_size=1000)
         # rospy.Subscriber("mavros/imu/data", Imu, self.imu_callback, queue_size=1000)
         rospy.spin()
