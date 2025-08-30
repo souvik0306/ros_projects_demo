@@ -10,11 +10,12 @@ from std_msgs.msg import Header
 import sys
 
 # --- configuration ---
-SEQLEN   = 200
-INTERVAL = 9
-OVERLAP  = INTERVAL + 1  # number of samples kept between windows
+SEQLEN   = 200        # Number of IMU samples per inference window
+INTERVAL = 9          # Interval between inference windows
+OVERLAP  = INTERVAL + 1  # Number of samples kept between windows for overlap
 
 class IMUBuffer:
+    """Buffer for storing IMU data and managing inference windows."""
     def __init__(self, seqlen, overlap):
         self.max_size = seqlen * 2
         self.seqlen = seqlen
@@ -35,14 +36,17 @@ class IMUBuffer:
         self.buf_idx += 1
 
     def ready(self):
+        """Check if enough samples are collected for inference."""
         return self.buf_idx >= self.seqlen
 
     def get_window(self):
+        """Get the current window of buffered IMU data."""
         return (self.time_buf[:self.buf_idx],
                 self.acc_buf[:self.buf_idx],
                 self.gyro_buf[:self.buf_idx])
 
     def slide_window(self):
+        """Keep only the last overlap samples after inference."""
         # Keep last overlap samples
         self.time_buf[:self.overlap] = self.time_buf[self.buf_idx - self.overlap : self.buf_idx]
         self.acc_buf[:self.overlap]  = self.acc_buf[self.buf_idx - self.overlap : self.buf_idx]
@@ -50,6 +54,7 @@ class IMUBuffer:
         self.buf_idx = self.overlap
 
 class CorrectedIMUPublisher:
+    """Publishes corrected IMU messages to a ROS topic."""
     def __init__(self, topic_name="/corrected_imu"):
         self.pub = rospy.Publisher(topic_name, Imu, queue_size=100)
 
@@ -73,6 +78,7 @@ class CorrectedIMUPublisher:
         self.pub.publish(imu_msg)
 
 class IMUInferenceNode:
+    """Main node for IMU inference and publishing corrected data."""
     def __init__(self):
         rp = rospkg.RosPack()
         self.pkg_path = rp.get_path("imu_listener_pkg")
@@ -91,6 +97,7 @@ class IMUInferenceNode:
         return True
 
     def load_model(self):
+        """Load the ONNX model for inference."""
         try:
             session_options = ort.SessionOptions()
             session_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
@@ -105,6 +112,7 @@ class IMUInferenceNode:
             rospy.signal_shutdown("Fatal error: Model loading failed.")
 
     def save_results(self):
+        """Save inference results to a pickle file."""
         try:
             os.makedirs(os.path.dirname(self.pickle_path), exist_ok=True)
             with open(self.pickle_path, "wb") as f:
