@@ -1,8 +1,0 @@
-prefix=/home/souvik03/Downloads/ros_projects/devel
-
-Name: imu_listener_pkg
-Description: Description of imu_listener_pkg
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 

@@ -1,5 +1,12 @@
 bags/*
 logs/*
-build/*
-devel/*
-bin/*
+build/
+devel/
+*.pyc
+*.swp
+*.log
+install/
+.cproject
+.settings/
+.idea/
+.vscode/
